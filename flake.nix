@@ -7,8 +7,11 @@
 		};
   };
 
-	outputs = inputs: let
-		pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+  outputs = inputs: let
+    pkgs = import inputs.nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+    };
 		mwpkgs = inputs.mwpkgs.packages.x86_64-linux;
 		lib = inputs.nixpkgs.lib;
 	in {
@@ -39,17 +42,6 @@
             monospace = [ "FiraCode Nerd Font Mono" ];
           };
           
-          # Bootloader.
-          boot.loader.grub.enable = true;
-          boot.loader.grub.device = "/dev/sda";
-          boot.loader.grub.useOSProber = true;
-
-          networking.hostName = "del-nix";
-          networking.wireless.enable = false;
-
-          # Enable networking
-          networking.networkmanager.enable = true;
-
           # Set your time zone.
           time.timeZone = "Europe/London";
 
@@ -71,76 +63,113 @@
           # Configure keymap in X11
           services.xserver = {
             enable = true;
-            displayManager.gdm.enable = true;
-            desktopManager.gnome.enable = true;
-            autorun = true;
-
             xkb = { 
               layout = "gb"; 
               variant = ""; 
             };
           };
 
-          #Configure Hyprland for login not by command line
-          #services.xserver = {
-            #enable = true;
-            #displayManager.sddm.enable = true;
-            #displayManager.sddm.wayland.enable = true;
-            #displayManager.sddm.theme = "where_is_my_sddm_theme";
-#
-          #};
-
           # Configure console keymap
           console.keyMap = "uk";
+
+          programs = {
+            fish.enable = true;
+            hyprland.enable = true;
+          };
 
           # Define a user account. Don't forget to set a password with ‘passwd’.
           users.users.del = {
             isNormalUser = true;
             description = "Derek Whybrow";
-            extraGroups = [ "networkmanager" "wheel" ];
+            shell = pkgs.fish;
+            extraGroups = [
+              "networkmanager" 
+              "wheel" 
+              "video"
+              "audio"
+            ];
             packages = [
-              mwpkgs.neovim
+              pkgs.htop # task manager
+              pkgs.lsof # needed by htop
+              pkgs.firefox 
+              pkgs.gh # github cli (command line interface)
+              pkgs.krita # photo editor
+              pkgs.unzip # for zip files 
+              pkgs.vlc # video player
+              pkgs.discord # communications app
+              mwpkgs.flake-updates # NixOS flake update analyser
+              mwpkgs.hyprland # Window Manager 
+              mwpkgs.hyprland-fish-auto-login
+              mwpkgs.fish # Shell upgrade with better autocomplete
+              mwpkgs.alacritty # GUI terminal
+              mwpkgs.starship # shell prompt heads up display 
+              mwpkgs.waybar # Window manager taskbar with widgets
+              mwpkgs.rofi # app launcher
+              mwpkgs.dunst # desktop notifications
+              mwpkgs.logout # rofi menu for loging out + power off
+              mwpkgs.networking # rofi menu for networking 
+              mwpkgs.tmux # adds tabs in terminal (alacritty)
+              mwpkgs.private # terminal without history
+              mwpkgs.alarm # sends desktop notifications after a time
+              mwpkgs.volume # helper util to make volume change easy
+              mwpkgs.brightness # helper util for brightness
+              mwpkgs.neovim # terminal text + code editor
             ];
           };
 
           # Enable automatic login for the user.
           # services.getty.autologinUser = "del";
 
-          # Allow unfree packages
-          nixpkgs.config.allowUnfree = true;
-
           # List packages installed in system profile. To search, run:
           # $ nix search wget
           environment.systemPackages = [
+            pkgs.light
+            pkgs.direnv
+            pkgs.nix-direnv
             pkgs.firefox
+          ];
+          services.udev.packages = [
+            pkgs.light
           ];
 
           services.openssh.enable = true;
 
           # DANGER ZONE
 
+          # Bootloader.
+          boot.loader.grub.enable = true;
+          boot.loader.grub.device = "/dev/sda";
+          boot.loader.grub.useOSProber = true;
+
+          networking.hostName = "del-nix";
+          networking.wireless.enable = false;
+
+          # Enable networking
+          networking.networkmanager.enable = true;
+
+
           system.stateVersion = "23.11"; # Did you read the comment?
 
           boot.initrd.availableKernelModules = [
-           "uhci_hcd" 
-          "ehci_pci" 
-          "ata_piix" 
-          "ahci"
-           "firewire_ohci"
-           "usb_storage"
-           "sd_mod"
-           "sr_mod"
-           "sdhci_pci"
-        ];
+            "uhci_hcd" 
+            "ehci_pci" 
+            "ata_piix" 
+            "ahci"
+            "firewire_ohci"
+            "usb_storage"
+            "sd_mod"
+            "sr_mod"
+            "sdhci_pci"
+          ];
 
-        boot.initrd.kernelModules = [ ];
-        boot.kernelModules = [ 
-          "kvm-intel" 
-        ];
-        boot.extraModulePackages = [ ];
+          boot.initrd.kernelModules = [ ];
+          boot.kernelModules = [ 
+            "kvm-intel" 
+          ];
+          boot.extraModulePackages = [ ];
 
-        fileSystems."/" = { 
-          device = "/dev/disk/by-uuid/387b28dc-62a8-4ca4-8d2b-4537488729a0";
+          fileSystems."/" = { 
+            device = "/dev/disk/by-uuid/387b28dc-62a8-4ca4-8d2b-4537488729a0";
             fsType = "ext4";
           };
 
